@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Stylized "CF" CapitalFlow symbol -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,34 C31,34 26,39 26,46 L26,62 C26,69 31,74 38,74 L48,74 L48,66 L38,66 C35,66 33,64 33,61 L33,47 C33,44 35,42 38,42 L48,42 L48,34 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M56,34 L56,74 L63,74 L63,58 L78,58 L78,50 L63,50 L63,42 L80,42 L80,34 Z" />
+</vector>

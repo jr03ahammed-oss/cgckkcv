@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Validation for UserProfile
+    function isValidUserProfile(data, userId) {
+      return data.id is string && data.id == userId
+        && data.email is string && data.email.size() <= 256
+        && data.companyName is string && data.companyName.size() > 0 && data.companyName.size() <= 100
+        && data.masterCurrency is string && data.masterCurrency.size() > 0 && data.masterCurrency.size() <= 10
+        && (!('ownerName' in data) || (data.ownerName is string && data.ownerName.size() <= 100))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000000))
+        && (!('defaultCountry' in data) || (data.defaultCountry is string && data.defaultCountry.size() <= 100))
+        && (!('defaultCurrency' in data) || (data.defaultCurrency is string && data.defaultCurrency.size() <= 10))
+        && (!('notificationReminder' in data) || data.notificationReminder is bool)
+        && (!('reminderDay' in data) || (data.reminderDay is number && data.reminderDay >= 1 && data.reminderDay <= 31))
+        && (!('reminderTime' in data) || (data.reminderTime is string && data.reminderTime.size() <= 10))
+        && (!('themePreference' in data) || (data.themePreference is string && data.themePreference.size() <= 20))
+        && (!('permanentUrl' in data) || (data.permanentUrl is string && data.permanentUrl.size() <= 500))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 40))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 40));
+    }
+
+    // Validation for Investment
+    function isValidInvestment(data, userId) {
+      return data.id is string && data.id.size() > 0 && data.id.size() <= 128
+        && data.userId is string && data.userId == userId
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 150
+        && data.country is string && data.country.size() > 0 && data.country.size() <= 100
+        && data.currency is string && data.currency.size() > 0 && data.currency.size() <= 10
+        && data.initialCapital is number && data.initialCapital >= 0
+        && data.startDate is string && data.startDate.size() <= 20
+        && (!('targetPeriod' in data) || (data.targetPeriod is string && data.targetPeriod.size() <= 50))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 40))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 40));
+    }
+
+    // Validation for MonthlyRecord
+    function isValidMonthlyRecord(data, userId, investmentId) {
+      return data.id is string && data.id.size() > 0 && data.id.size() <= 128
+        && data.userId is string && data.userId == userId
+        && data.investmentId is string && data.investmentId == investmentId
+        && data.month is string && data.month.size() > 0 && data.month.size() <= 30
+        && data.date is string && data.date.size() > 0 && data.date.size() <= 20
+        && data.income is number
+        && data.expense is number
+        && data.additionalCapital is number
+        && data.withdrawal is number
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
+        && (!('status' in data) || (data.status is string && data.status.size() <= 50))
+        && (!('exchangeRate' in data) || data.exchangeRate is number)
+        && (!('exchangeRateDate' in data) || (data.exchangeRateDate is string && data.exchangeRateDate.size() <= 30))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 40))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 40));
+    }
+
+    // Validation for FundingRecord
+    function isValidFundingRecord(data, userId) {
+      return data.id is string && data.id.size() > 0 && data.id.size() <= 128
+        && data.userId is string && data.userId == userId
+        && data.source is string && data.source.size() > 0 && data.source.size() <= 120
+        && data.type is string && data.type.size() > 0 && data.type.size() <= 50
+        && data.amount is number
+        && data.currency is string && data.currency.size() > 0 && data.currency.size() <= 10
+        && data.date is string && data.date.size() > 0 && data.date.size() <= 20
+        && data.status is string && data.status.size() > 0 && data.status.size() <= 30
+        && (!('allocatedInvestmentId' in data) || (data.allocatedInvestmentId is string && data.allocatedInvestmentId.size() <= 128))
+        && (!('allocatedInvestmentName' in data) || (data.allocatedInvestmentName is string && data.allocatedInvestmentName.size() <= 150))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 40))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 40));
+    }
+
+    // User profile document
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data, userId);
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data, userId)
+                    && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId);
+
+      // Funding records subcollection
+      match /fundingRecords/{recordId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(recordId) && isValidFundingRecord(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(recordId) && isValidFundingRecord(request.resource.data, userId)
+                      && request.resource.data.userId == resource.data.userId;
+        allow delete: if isOwner(userId);
+      }
+
+      // Investments subcollection
+      match /investments/{investmentId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(investmentId) && isValidInvestment(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(investmentId) && isValidInvestment(request.resource.data, userId)
+                      && request.resource.data.userId == resource.data.userId;
+        allow delete: if isOwner(userId);
+
+        // Monthly records subcollection
+        match /monthlyRecords/{recordId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId) && isValidId(recordId) && isValidMonthlyRecord(request.resource.data, userId, investmentId);
+          allow update: if isOwner(userId) && isValidId(recordId) && isValidMonthlyRecord(request.resource.data, userId, investmentId)
+                        && request.resource.data.userId == resource.data.userId
+                        && request.resource.data.investmentId == resource.data.investmentId;
+          allow delete: if isOwner(userId);
+        }
+      }
+    }
+
+    // Test doc for connection check
+    match /test/{testId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

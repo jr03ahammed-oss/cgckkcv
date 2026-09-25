@@ -1,0 +1,8 @@
+{
+  "name": "Remix CapitalFlow",
+  "description": "Production-ready Version 1 investment portfolio management web app inspired by financial workbook systems with multi-currency tracking, dynamic calculations, and Google Sign-In.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

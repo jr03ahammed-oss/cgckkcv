@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.CapitalFlow" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#22A06B</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+    </style>
+</resources>
